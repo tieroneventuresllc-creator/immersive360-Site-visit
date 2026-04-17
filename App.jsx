@@ -419,10 +419,36 @@ ${signatureData ? "[Included as base64 image data]" : "No signature captured"}
                     </div>
                     <div className="space-y-1">
                       <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500 ml-1">Contact Person</label>
+                      <div className="space-y-1">
                       <input type="text" className={`w-full ${inputBg} border ${inputBorder} rounded-xl px-4 py-3 text-sm focus:border-[#1F8cac] outline-none transition-colors ${textColor}`} value={clientInfo.contactName} onChange={e => setClientInfo({...clientInfo, contactName: e.target.value})} />
                     </div>
                   </div>
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  <div className="space-y-1">
+  <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500 ml-1">
+    Email
+  </label>
+  <input
+    type="email"
+    className={`w-full ${inputBg} border ${inputBorder} rounded-xl px-4 py-3 text-sm focus:border-[#1F8cac] outline-none transition-colors ${textColor}`}
+    value={clientInfo.email}
+    onChange={e => setClientInfo({ ...clientInfo, email: e.target.value })}
+  />
+</div>
 
+<div className="space-y-1">
+  <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500 ml-1">
+    Phone
+  </label>
+  <input
+    type="tel"
+    className={`w-full ${inputBg} border ${inputBorder} rounded-xl px-4 py-3 text-sm focus:border-[#1F8cac] outline-none transition-colors ${textColor}`}
+    value={clientInfo.phone}
+    onChange={e => setClientInfo({ ...clientInfo, phone: e.target.value })}
+  />
+</div>
+
+</div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1 relative group">
                       <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500 ml-1 mb-1 block">Travel Zone</label>
