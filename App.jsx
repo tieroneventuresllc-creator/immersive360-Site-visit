@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { 
   ClipboardList,
   Layers,
@@ -18,11 +18,9 @@ import {
   Zap,
   HardHat,
   Eye,
-  Info,
   Users,
   Calendar,
   Upload,
-  User,
   Mail,
   Phone,
   FileText,
@@ -33,8 +31,9 @@ import {
   CreditCard,
   Lock,
   Sun,
-  
-  Moon
+  Moon,
+  X,
+  Image as ImageIcon
 } from 'lucide-react';
 
 const App = () => {
@@ -42,9 +41,11 @@ const App = () => {
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [sector, setSector] = useState('commercial'); 
   const [isLogisticsOpen, setIsLogisticsOpen] = useState(true);
+  const [isAssetsOpen, setIsAssetsOpen] = useState(false);
   const [isDemosOpen, setIsDemosOpen] = useState(false);
   const [expandedTier, setExpandedTier] = useState(null);
   
+  // Client & Project State
   const [clientInfo, setClientInfo] = useState({
     company: '',
     contactName: '',
@@ -53,12 +54,16 @@ const App = () => {
     notes: '',
     preferredDate: '',
     siteVisitDate: '',
-    consultationDate: '',
+    consultDate: '',
     consultationTime: '10:00 AM',
     travelZone: '0',
     incentive: 'none',
+    customIncentiveName: '',
+    customIncentiveValue: 0,
     publicSpacePercent: '0'
   });
+
+  const [uploadedFiles, setUploadedFiles] = useState([]);
 
   // Pricing State
   const [commSizeIdx, setCommSizeIdx] = useState(0);
@@ -145,9 +150,10 @@ const App = () => {
 
     let flatDiscount = 0;
     if (clientInfo.incentive === 'commitment') flatDiscount = 50;
-    if (clientInfo.incentive === 'veteran') flatDiscount = 35;
-    if (clientInfo.incentive === 'repeat') flatDiscount = 25;
-    if (clientInfo.incentive === 'friends') flatDiscount = 20;
+    else if (clientInfo.incentive === 'veteran') flatDiscount = 35;
+    else if (clientInfo.incentive === 'repeat') flatDiscount = 25;
+    else if (clientInfo.incentive === 'friends') flatDiscount = 20;
+    else if (clientInfo.incentive === 'custom') flatDiscount = Number(clientInfo.customIncentiveValue) || 0;
 
     const travelFee = parseInt(clientInfo.travelZone);
     const publicSpaceSurcharge = subtotal * (parseInt(clientInfo.publicSpacePercent) / 100);
@@ -160,140 +166,21 @@ const App = () => {
       grand: Math.round(subtotal - flatDiscount + travelFee + publicSpaceSurcharge) 
     };
   }, [sector, commSizeIdx, commTier, commAddons, resSizeIdx, resPackage, resAddons, clientInfo]);
-const handleGenerateProposal = () => {
-  const signatureData = canvasRef.current?.toDataURL("image/png") || "";
 
-  const commercialTierLabels = {
-    tier3: "Essentials",
-    tier2: "Stand Out",
-    tier1: "All In"
+  const handleFileUpload = (e) => {
+    const files = Array.from(e.target.files);
+    const newUploads = files.map(file => ({
+      name: file.name,
+      size: (file.size / 1024 / 1024).toFixed(2) + 'MB',
+      id: Math.random().toString(36).substr(2, 9)
+    }));
+    setUploadedFiles(prev => [...prev, ...newUploads]);
   };
 
-  const commercialAddonLabels = {
-    google: "Google Street View",
-    droneP: "Aerial Photography",
-    renderings: "Virtual Renderings",
-    floorPlan: "Floor Plan (2D)",
-    revit: "Revit/AutoCAD Export",
-    e57: "E57 High-Density File",
-    cadFileTbd: "CAD File Mapping",
-    bimFileTbd: "BIM Generation"
+  const removeFile = (id) => {
+    setUploadedFiles(prev => prev.filter(f => f.id !== id));
   };
 
-  const residentialAddonLabels = {
-    mp: "Matterport 3D Tour",
-    droneBoth: "Aerial Package",
-    staging: "Virtual Staging",
-    floor2d: "2D Schematic Floor Plan",
-    floor3d: "3D Floor Plan"
-  };
-
-  const travelZoneLabels = {
-    "0": "NJ (North/Central)",
-    "50": "NJ (South Jersey/Shore) (+$50)",
-    "150": "NYC / Philly / AC (+$150)",
-    "450": "Out of State (+$450)"
-  };
-
-  const incentiveLabels = {
-    none: "No Incentive Selection",
-    commitment: "On Site Commitment (-$50)",
-    veteran: "Veteran (-$35)",
-    repeat: "Repeat Client (-$25)",
-    friends: "Friends and Family (-$20)"
-  };
-
-  const publicSpaceLabels = {
-    "0": "Standard (0%)",
-    "5": "Low Traffic (5%)",
-    "10": "Active (10%)",
-    "15": "High/Event (15%)"
-  };
-
-  const selectedPackage =
-    sector === "commercial"
-      ? commercialTierLabels[commTier]
-      : resPackage === "photo"
-        ? "HDR Photos"
-        : "Premium Bundle";
-
-  const selectedSize =
-    sector === "commercial"
-      ? commercialSizes[commSizeIdx]?.name
-      : residentialSizes[resSizeIdx]?.name;
-
-  const selectedAddons =
-    sector === "commercial"
-      ? commAddons.map(id => commercialAddonLabels[id] || id)
-      : resAddons.map(id => residentialAddonLabels[id] || id);
-
-  const tbdSelections = [];
-  if (sector === "commercial") {
-    if (tbdItems.renderings) tbdSelections.push("Virtual Renderings (TBD)");
-    if (tbdItems.cadFileTbd) tbdSelections.push("CAD File Mapping (TBD)");
-    if (tbdItems.bimFileTbd) tbdSelections.push("BIM Generation (TBD)");
-  }
-
-  const summary = `
-IMMERSIVE 360 - PROPOSAL INTAKE SUMMARY
-
-Timestamp: ${new Date().toLocaleString()}
-Sector: ${sector === "commercial" ? "Commercial" : "Real Estate"}
-
-CLIENT INFORMATION
-Company: ${clientInfo.company || "N/A"}
-Contact Person: ${clientInfo.contactName || "N/A"}
-Email: ${clientInfo.email || "N/A"}
-Phone: ${clientInfo.phone || "N/A"}
-
-PROJECT LOGISTICS
-Travel Zone: ${travelZoneLabels[clientInfo.travelZone] || clientInfo.travelZone}
-Incentive: ${incentiveLabels[clientInfo.incentive] || clientInfo.incentive}
-Site Visit Date: ${clientInfo.siteVisitDate || "N/A"}
-Preferred Date: ${clientInfo.preferredDate || "N/A"}
-Consult Time: ${clientInfo.consultationTime || "N/A"}
-Public Space: ${publicSpaceLabels[clientInfo.publicSpacePercent] || clientInfo.publicSpacePercent}
-
-PACKAGE DETAILS
-Selected Package: ${selectedPackage || "N/A"}
-Property Size: ${selectedSize || "N/A"}
-
-SELECTED ADD-ONS
-${selectedAddons.length ? selectedAddons.map(item => `- ${item}`).join("\n") : "- None"}
-
-TBD / FUTURE ITEMS
-${tbdSelections.length ? tbdSelections.map(item => `- ${item}`).join("\n") : "- None"}
-
-PRICING SUMMARY
-Gross Subtotal: $${totals.subtotal}
-Discount: $${totals.discount}
-Travel Fee: $${totals.travelFee}
-Public Space Fee: $${totals.publicSpaceFee}
-Estimated Final Investment: $${totals.grand}
-
-NOTES
-${clientInfo.notes || "None"}
-
-SIGNATURE
-${signatureData ? "[Included as base64 image data]" : "No signature captured"}
-`.trim();
-
-  const blob = new Blob([summary], { type: "text/plain;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-
-  const companySlug = (clientInfo.company || "proposal")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-
-  link.download = `immersive360-${companySlug}-proposal-summary.txt`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
-};
   const startDrawing = (e) => {
     setIsDrawing(true);
     const canvas = canvasRef.current;
@@ -317,7 +204,6 @@ ${signatureData ? "[Included as base64 image data]" : "No signature captured"}
     ctx.lineTo(x, y); ctx.stroke();
   };
 
-  // Dynamic Tailwind Classes based on Theme
   const bgColor = isDarkMode ? 'bg-[#050505]' : 'bg-[#f8f9fa]';
   const textColor = isDarkMode ? 'text-white' : 'text-slate-900';
   const mutedText = isDarkMode ? 'text-white/50' : 'text-slate-500';
@@ -340,7 +226,6 @@ ${signatureData ? "[Included as base64 image data]" : "No signature captured"}
              <button 
                 onClick={() => setIsDarkMode(!isDarkMode)}
                 className={`p-3 rounded-full border transition-all ${isDarkMode ? 'bg-zinc-900 border-zinc-700 text-yellow-400 hover:bg-zinc-800' : 'bg-white border-slate-200 text-indigo-600 hover:bg-slate-50 shadow-sm'}`}
-                title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
               >
                 {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
              </button>
@@ -364,13 +249,7 @@ ${signatureData ? "[Included as base64 image data]" : "No signature captured"}
               <div className={`absolute top-full mt-2 right-0 w-72 ${isDarkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-slate-200'} border rounded-xl shadow-2xl z-[100] p-2 overflow-hidden animate-in`}>
                 <div className="max-h-[400px] overflow-y-auto custom-scroll">
                   {demoLinks.map((link, idx) => (
-                    <a 
-                      key={idx} 
-                      href={link.url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className={`flex items-center justify-between p-3 hover:bg-[#1F8cac]/10 rounded-lg group transition-colors border-b ${isDarkMode ? 'border-zinc-800' : 'border-slate-100'} last:border-0`}
-                    >
+                    <a key={idx} href={link.url} target="_blank" rel="noopener noreferrer" className={`flex items-center justify-between p-3 hover:bg-[#1F8cac]/10 rounded-lg group transition-colors border-b ${isDarkMode ? 'border-zinc-800' : 'border-slate-100'} last:border-0`}>
                       <div>
                         <p className={`text-[9px] ${isDarkMode ? 'text-zinc-500' : 'text-slate-400'} font-black uppercase tracking-widest`}>{link.cat}</p>
                         <p className={`text-xs font-bold ${isDarkMode ? 'text-white' : 'text-slate-800'} group-hover:text-[#1F8cac]`}>{link.name}</p>
@@ -405,66 +284,38 @@ ${signatureData ? "[Included as base64 image data]" : "No signature captured"}
                   </div>
                   <div className="text-left">
                     <h2 className={`text-lg font-bold ${textColor} tracking-tight`}>Project Logistics</h2>
-                    <p className={`text-[10px] ${mutedText} font-black uppercase tracking-widest`}>Client, Region & Media</p>
+                    <p className={`text-[10px] ${mutedText} font-black uppercase tracking-widest`}>Client & Contact Information</p>
                   </div>
                 </div>
                 {isLogisticsOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
               </button>
               {isLogisticsOpen && (
                 <div className="p-6 pt-0 space-y-6 animate-in mt-6">
+                  {/* Basic Info */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-  <div className="space-y-1">
-    <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500 ml-1">
-      Company Name
-    </label>
-    <input
-      type="text"
-      className={`w-full ${inputBg} border ${inputBorder} rounded-xl px-4 py-3 text-sm focus:border-[#1F8cac] outline-none transition-colors ${textColor}`}
-      value={clientInfo.company}
-      onChange={e => setClientInfo({ ...clientInfo, company: e.target.value })}
-    />
-  </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500 ml-1">Company / Project Name</label>
+                      <input type="text" placeholder="e.g. Acme Corp Headquarters" className={`w-full ${inputBg} border ${inputBorder} rounded-xl px-4 py-3 text-sm focus:border-[#1F8cac] outline-none transition-colors ${textColor}`} value={clientInfo.company} onChange={e => setClientInfo({...clientInfo, company: e.target.value})} />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500 ml-1">Primary Contact Name</label>
+                      <input type="text" placeholder="Full Name" className={`w-full ${inputBg} border ${inputBorder} rounded-xl px-4 py-3 text-sm focus:border-[#1F8cac] outline-none transition-colors ${textColor}`} value={clientInfo.contactName} onChange={e => setClientInfo({...clientInfo, contactName: e.target.value})} />
+                    </div>
+                  </div>
 
-  <div className="space-y-1">
-    <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500 ml-1">
-      Contact Person
-    </label>
-    <input
-      type="text"
-      className={`w-full ${inputBg} border ${inputBorder} rounded-xl px-4 py-3 text-sm focus:border-[#1F8cac] outline-none transition-colors ${textColor}`}
-      value={clientInfo.contactName}
-      onChange={e => setClientInfo({ ...clientInfo, contactName: e.target.value })}
-    />
-  </div>
+                  {/* Contact Info */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500 ml-1 flex items-center gap-1"><Mail size={10}/> Contact Email</label>
+                      <input type="email" placeholder="client@example.com" className={`w-full ${inputBg} border ${inputBorder} rounded-xl px-4 py-3 text-sm focus:border-[#1F8cac] outline-none transition-colors ${textColor}`} value={clientInfo.email} onChange={e => setClientInfo({...clientInfo, email: e.target.value})} />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500 ml-1 flex items-center gap-1"><Phone size={10}/> Contact Phone</label>
+                      <input type="tel" placeholder="(555) 000-0000" className={`w-full ${inputBg} border ${inputBorder} rounded-xl px-4 py-3 text-sm focus:border-[#1F8cac] outline-none transition-colors ${textColor}`} value={clientInfo.phone} onChange={e => setClientInfo({...clientInfo, phone: e.target.value})} />
+                    </div>
+                  </div>
 
-  <div className="space-y-1">
-    <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500 ml-1">
-      Email
-    </label>
-    <input
-      type="email"
-      className={`w-full ${inputBg} border ${inputBorder} rounded-xl px-4 py-3 text-sm focus:border-[#1F8cac] outline-none transition-colors ${textColor}`}
-      value={clientInfo.email}
-      onChange={e => setClientInfo({ ...clientInfo, email: e.target.value })}
-      placeholder="email@example.com"
-    />
-  </div>
-
-  <div className="space-y-1">
-    <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500 ml-1">
-      Phone
-    </label>
-    <input
-      type="tel"
-      className={`w-full ${inputBg} border ${inputBorder} rounded-xl px-4 py-3 text-sm focus:border-[#1F8cac] outline-none transition-colors ${textColor}`}
-      value={clientInfo.phone}
-      onChange={e => setClientInfo({ ...clientInfo, phone: e.target.value })}
-      placeholder="(555) 555-5555"
-    />
-  </div>
-</div>
-
-
+                  {/* Zones & Incentives */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1 relative group">
                       <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500 ml-1 mb-1 block">Travel Zone</label>
@@ -487,19 +338,47 @@ ${signatureData ? "[Included as base64 image data]" : "No signature captured"}
                           <option value="veteran">Veteran (-$35)</option>
                           <option value="repeat">Repeat Client (-$25)</option>
                           <option value="friends">Friends and Family (-$20)</option>
+                          <option value="custom">Custom Incentive / Discount</option>
                         </select>
                         <ChevronDown size={16} className={`absolute right-4 top-1/2 -translate-y-1/2 ${isDarkMode ? 'text-zinc-500' : 'text-slate-400'} pointer-events-none group-focus-within:text-[#1F8cac]`} />
                       </div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Custom Incentive Details */}
+                  {clientInfo.incentive === 'custom' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in">
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-black uppercase tracking-widest text-red-500 ml-1">Incentive Description</label>
+                        <input type="text" placeholder="e.g. Non-profit Discount" className={`w-full ${inputBg} border border-red-500/30 rounded-xl px-4 py-3 text-sm focus:border-red-500 outline-none transition-colors ${textColor}`} value={clientInfo.customIncentiveName} onChange={e => setClientInfo({...clientInfo, customIncentiveName: e.target.value})} />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-black uppercase tracking-widest text-red-500 ml-1">Discount Amount ($)</label>
+                        <input type="number" placeholder="0" className={`w-full ${inputBg} border border-red-500/30 rounded-xl px-4 py-3 text-sm focus:border-red-500 outline-none transition-colors ${textColor}`} value={clientInfo.customIncentiveValue} onChange={e => setClientInfo({...clientInfo, customIncentiveValue: e.target.value})} />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Schedule Details Row 1: Primary Dates */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1">
                       <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500 ml-1 flex items-center gap-1"><Calendar size={10}/> Site Visit Date</label>
                       <input type="date" className={`w-full ${isDarkMode ? 'bg-zinc-900 border-zinc-700/50' : 'bg-white border-slate-300'} border rounded-xl px-4 py-3 text-sm focus:border-[#1F8cac] outline-none ${textColor}`} value={clientInfo.siteVisitDate} onChange={e => setClientInfo({...clientInfo, siteVisitDate: e.target.value})} />
                     </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500 ml-1 flex items-center gap-1"><Search size={10}/> Preferred Delivery Date</label>
+                      <input type="date" className={`w-full ${isDarkMode ? 'bg-zinc-900 border-zinc-700/50' : 'bg-white border-slate-300'} border rounded-xl px-4 py-3 text-sm focus:border-[#1F8cac] outline-none ${textColor}`} value={clientInfo.preferredDate} onChange={e => setClientInfo({...clientInfo, preferredDate: e.target.value})} />
+                    </div>
+                  </div>
+
+                  {/* Schedule Details Row 2: Consultation Info */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black uppercase tracking-widest text-indigo-500 ml-1 flex items-center gap-1"><Calendar size={10}/> Consult Date</label>
+                      <input type="date" className={`w-full ${isDarkMode ? 'bg-zinc-900 border-indigo-900/40' : 'bg-white border-slate-300'} border rounded-xl px-4 py-3 text-sm focus:border-[#1F8cac] outline-none ${textColor}`} value={clientInfo.consultDate} onChange={e => setClientInfo({...clientInfo, consultDate: e.target.value})} />
+                    </div>
                     <div className="space-y-1 relative group">
-                      <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500 ml-1 flex items-center gap-1 mb-1"><Clock size={10}/> Consult Time</label>
+                      <label className="text-[9px] font-black uppercase tracking-widest text-indigo-500 ml-1 flex items-center gap-1 mb-1"><Clock size={10}/> Consult Time</label>
                       <div className="relative">
                         <select className={modernSelectClass} value={clientInfo.consultationTime} onChange={e => setClientInfo({...clientInfo, consultationTime: e.target.value})}>
                           {['9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM'].map(t => <option key={t} value={t}>{t}</option>)}
@@ -507,12 +386,8 @@ ${signatureData ? "[Included as base64 image data]" : "No signature captured"}
                         <ChevronDown size={16} className={`absolute right-4 top-1/2 -translate-y-1/2 ${isDarkMode ? 'text-zinc-500' : 'text-slate-400'} pointer-events-none group-focus-within:text-[#1F8cac]`} />
                       </div>
                     </div>
-                    <div className="space-y-1">
-                      <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500 ml-1 flex items-center gap-1"><Search size={10}/> Preferred Date</label>
-                      <input type="date" className={`w-full ${isDarkMode ? 'bg-zinc-900 border-zinc-700/50' : 'bg-white border-slate-300'} border rounded-xl px-4 py-3 text-sm focus:border-[#1F8cac] outline-none ${textColor}`} value={clientInfo.preferredDate} onChange={e => setClientInfo({...clientInfo, preferredDate: e.target.value})} />
-                    </div>
                     <div className="space-y-1 relative group">
-                      <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500 ml-1 flex items-center gap-1 mb-1"><Users size={10}/> Public Space</label>
+                      <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500 ml-1 flex items-center gap-1 mb-1"><Users size={10}/> Public Space Intensity</label>
                       <div className="relative">
                         <select className={modernSelectClass} value={clientInfo.publicSpacePercent} onChange={e => setClientInfo({...clientInfo, publicSpacePercent: e.target.value})}>
                           <option value="0">Standard (0%)</option>
@@ -528,6 +403,64 @@ ${signatureData ? "[Included as base64 image data]" : "No signature captured"}
                   <div className="space-y-1">
                     <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500 ml-1 flex items-center gap-1"><FileText size={10}/> Internal Project Notes</label>
                     <textarea rows="2" placeholder="Specific access instructions, lighting notes..." className={`w-full ${inputBg} border ${inputBorder} rounded-xl px-4 py-3 text-sm focus:border-[#1F8cac] outline-none transition-colors ${textColor}`} value={clientInfo.notes} onChange={e => setClientInfo({...clientInfo, notes: e.target.value})} />
+                  </div>
+                </div>
+              )}
+            </section>
+
+            {/* Asset Management / Upload Section (Collapsible) */}
+            <section className={`${cardBg} border ${cardBorder} rounded-2xl overflow-hidden transition-colors`}>
+              <button onClick={() => setIsAssetsOpen(!isAssetsOpen)} className={`w-full flex items-center justify-between p-6 hover:${isDarkMode ? 'bg-zinc-900/40' : 'bg-slate-50'} transition-colors border-b ${isDarkMode ? 'border-zinc-800/20' : 'border-slate-100'}`}>
+                <div className="flex items-center gap-4">
+                  <div className={`w-10 h-10 ${isDarkMode ? 'bg-indigo-500/10 border-indigo-500/30' : 'bg-indigo-500/5 border-indigo-500/20'} rounded-lg flex items-center justify-center border`}>
+                    <Upload size={20} className="text-indigo-500" />
+                  </div>
+                  <div className="text-left">
+                    <h2 className={`text-lg font-bold ${textColor} tracking-tight`}>Asset Management</h2>
+                    <p className={`text-[10px] ${mutedText} font-black uppercase tracking-widest`}>Project Photos & Reference Files</p>
+                  </div>
+                </div>
+                {isAssetsOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+              </button>
+              
+              {isAssetsOpen && (
+                <div className="p-6 pt-6 animate-in">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="relative">
+                       <input type="file" multiple onChange={handleFileUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                       <div className={`h-44 border-2 border-dashed ${isDarkMode ? 'border-zinc-800 bg-zinc-900/50 hover:bg-zinc-800' : 'border-slate-200 bg-slate-50 hover:bg-slate-100'} rounded-2xl flex flex-col items-center justify-center gap-2 transition-all group`}>
+                          <div className={`p-3 rounded-full ${isDarkMode ? 'bg-zinc-800' : 'bg-white shadow-sm'} group-hover:scale-110 transition-transform`}>
+                            <ImageIcon size={24} className={isDarkMode ? 'text-zinc-600' : 'text-slate-400'} />
+                          </div>
+                          <p className={`text-xs font-bold ${isDarkMode ? 'text-zinc-500' : 'text-slate-500'}`}>Click or Drop Project Photos</p>
+                          <p className={`text-[9px] ${isDarkMode ? 'text-zinc-700' : 'text-slate-400'} uppercase font-black tracking-widest`}>JPG, PNG, PDF up to 20MB</p>
+                       </div>
+                    </div>
+
+                    <div className="space-y-2 max-h-44 overflow-y-auto custom-scroll pr-2">
+                       {uploadedFiles.length === 0 ? (
+                          <div className={`h-full flex items-center justify-center ${isDarkMode ? 'text-zinc-800' : 'text-slate-200'} text-xs font-bold uppercase tracking-widest italic border ${isDarkMode ? 'border-zinc-800' : 'border-slate-100'} rounded-2xl border-dashed`}>
+                            No assets attached
+                          </div>
+                       ) : (
+                          uploadedFiles.map(file => (
+                            <div key={file.id} className={`flex items-center justify-between p-3 rounded-xl border ${isDarkMode ? 'bg-zinc-900/80 border-zinc-800' : 'bg-white border-slate-100'} animate-in`}>
+                              <div className="flex items-center gap-3 overflow-hidden">
+                                <div className="w-8 h-8 rounded bg-[#1F8cac]/10 flex items-center justify-center shrink-0">
+                                   <FileText size={14} className="text-[#1F8cac]" />
+                                </div>
+                                <div className="truncate">
+                                  <p className={`text-[11px] font-bold ${textColor} truncate`}>{file.name}</p>
+                                  <p className={`text-[9px] ${mutedText} uppercase font-black`}>{file.size}</p>
+                                </div>
+                              </div>
+                              <button onClick={() => removeFile(file.id)} className={`p-1.5 rounded-lg hover:bg-red-500/10 text-zinc-500 hover:text-red-500 transition-colors`}>
+                                <X size={14} />
+                              </button>
+                            </div>
+                          ))
+                       )}
+                    </div>
                   </div>
                 </div>
               )}
@@ -685,7 +618,7 @@ ${signatureData ? "[Included as base64 image data]" : "No signature captured"}
                 </div>
                 {totals.discount > 0 && (
                   <div className="flex justify-between text-xs font-bold text-emerald-500">
-                    <span>Incentives Applied</span>
+                    <span className="truncate max-w-[150px]">{clientInfo.incentive === 'custom' ? (clientInfo.customIncentiveName || 'Applied Incentive') : 'Member Incentive'}</span>
                     <span>-${totals.discount}</span>
                   </div>
                 )}
@@ -711,12 +644,9 @@ ${signatureData ? "[Included as base64 image data]" : "No signature captured"}
                 />
               </div>
 
-              <button
-  onClick={handleGenerateProposal}
-  className="w-full bg-[#1F8cac] text-white hover:brightness-110 py-4 rounded-xl flex items-center justify-center gap-2 font-black text-xs uppercase transition-all shadow-xl shadow-[#1F8cac]/30 active:scale-95"
->
-  <Download size={16} /> Generate Proposal
-</button>
+              <button className="w-full bg-[#1F8cac] text-white hover:brightness-110 py-4 rounded-xl flex items-center justify-center gap-2 font-black text-xs uppercase transition-all shadow-xl shadow-[#1F8cac]/30 active:scale-95">
+                <Download size={16} /> Generate Proposal
+              </button>
             </div>
           </div>
         </div>
