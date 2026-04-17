@@ -82,6 +82,8 @@ const App = () => {
 
   const canvasRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   // Constants
   const demoLinks = [
@@ -168,17 +170,104 @@ const App = () => {
   }, [sector, commSizeIdx, commTier, commAddons, resSizeIdx, resPackage, resAddons, clientInfo]);
 
   const handleFileUpload = (e) => {
-    const files = Array.from(e.target.files);
+    e.preventDefault();
+    const files = Array.from(e.dataTransfer ? e.dataTransfer.files : e.target.files);
     const newUploads = files.map(file => ({
       name: file.name,
       size: (file.size / 1024 / 1024).toFixed(2) + 'MB',
-      id: Math.random().toString(36).substr(2, 9)
+      id: Math.random().toString(36).substr(2, 9),
+      type: file.type,
+      url: file.type.startsWith('image/') ? URL.createObjectURL(file) : null
     }));
     setUploadedFiles(prev => [...prev, ...newUploads]);
+    setIsDragging(false);
   };
 
   const removeFile = (id) => {
-    setUploadedFiles(prev => prev.filter(f => f.id !== id));
+    setUploadedFiles(prev => {
+      const fileToRemove = prev.find(f => f.id === id);
+      if (fileToRemove && fileToRemove.url) URL.revokeObjectURL(fileToRemove.url);
+      return prev.filter(f => f.id !== id);
+    });
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleGenerateProposal = () => {
+    setIsGenerating(true);
+    setTimeout(() => {
+      const date = new Date();
+      const timestamp = date.toLocaleDateString('en-US', {
+        month: '2-digit', day: '2-digit', year: 'numeric'
+      }) + ' - ' + date.toLocaleTimeString('en-US', {
+        hour: '2-digit', minute: '2-digit'
+      });
+
+      const val = (v) => (v && v !== '') ? v : 'N/A';
+
+      const summary = `
+IMMERSIVE 360 - SITE EVALUATION SUMMARY
+Generated: ${timestamp}
+------------------------------
+
+CLIENT INFORMATION
+Company: ${val(clientInfo.company)}
+Contact: ${val(clientInfo.contactName)}
+Email: ${val(clientInfo.email)}
+Phone: ${val(clientInfo.phone)}
+
+------------------------------
+
+PROJECT LOGISTICS
+Travel Zone: ${val(clientInfo.travelZone === '0' ? 'NJ (North/Central)' : clientInfo.travelZone === '50' ? 'NJ (South/Shore)' : clientInfo.travelZone === '150' ? 'NYC/Philly/AC' : 'Out of State')}
+Site Visit Date: ${val(clientInfo.siteVisitDate)}
+Consult Date: ${val(clientInfo.consultDate)}
+Consult Time: ${val(clientInfo.consultationTime)}
+Preferred Shoot Date: ${val(clientInfo.preferredDate)}
+Public Space Surcharge: ${clientInfo.publicSpacePercent}%
+Incentive Applied: ${val(clientInfo.incentive !== 'none' ? clientInfo.incentive : 'N/A')}
+Notes: ${val(clientInfo.notes)}
+
+------------------------------
+
+PACKAGE DETAILS
+Sector: ${sector.toUpperCase()}
+Size/Scale: ${sector === 'commercial' ? commercialSizes[commSizeIdx].name : residentialSizes[resSizeIdx].name}
+Selected Package: ${sector === 'commercial' ? commTier.toUpperCase() : resPackage.toUpperCase()}
+Base Price: $${totals.subtotal}
+
+------------------------------
+
+SELECTED ADD-ONS
+${sector === 'commercial' ? (commAddons.length > 0 ? commAddons.join(', ') : 'None') : (resAddons.length > 0 ? resAddons.join(', ') : 'None')}
+TBD Items: ${Object.entries(tbdItems).filter(([_, v]) => v).map(([k]) => k).join(', ') || 'None'}
+
+------------------------------
+
+ESTIMATED FINAL INVESTMENT: $${totals.grand}
+------------------------------
+      `.trim();
+
+      const blob = new Blob([summary], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `I360_Proposal_${clientInfo.company.replace(/\s+/g, '_') || 'Draft'}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      setIsGenerating(false);
+    }, 800);
   };
 
   const startDrawing = (e) => {
@@ -417,7 +506,7 @@ const App = () => {
                   </div>
                   <div className="text-left">
                     <h2 className={`text-lg font-bold ${textColor} tracking-tight`}>Asset Management</h2>
-                    <p className={`text-[10px] ${mutedText} font-black uppercase tracking-widest`}>Project Photos & Reference Files</p>
+                    <p className={`text-[10px] ${mutedText} font-black uppercase tracking-widest`}>Project Photos & Reference Files (Internal Use Only)</p>
                   </div>
                 </div>
                 {isAssetsOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
@@ -425,36 +514,52 @@ const App = () => {
               
               {isAssetsOpen && (
                 <div className="p-6 pt-6 animate-in">
+                  <p className={`text-[10px] ${mutedText} mb-4 font-medium`}>Upload site photos, plans, or reference documents for internal documentation.</p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="relative">
-                       <input type="file" multiple onChange={handleFileUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
-                       <div className={`h-44 border-2 border-dashed ${isDarkMode ? 'border-zinc-800 bg-zinc-900/50 hover:bg-zinc-800' : 'border-slate-200 bg-slate-50 hover:bg-slate-100'} rounded-2xl flex flex-col items-center justify-center gap-2 transition-all group`}>
-                          <div className={`p-3 rounded-full ${isDarkMode ? 'bg-zinc-800' : 'bg-white shadow-sm'} group-hover:scale-110 transition-transform`}>
-                            <ImageIcon size={24} className={isDarkMode ? 'text-zinc-600' : 'text-slate-400'} />
+                       <input 
+                         type="file" 
+                         multiple 
+                         accept=".jpg,.jpeg,.png,.pdf"
+                         onChange={handleFileUpload} 
+                         onDragOver={handleDragOver}
+                         onDragLeave={handleDragLeave}
+                         onDrop={handleFileUpload}
+                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
+                       />
+                       <div className={`h-44 border-2 border-dashed ${isDragging ? 'border-[#1F8cac] bg-[#1F8cac]/10' : isDarkMode ? 'border-zinc-800 bg-zinc-900/50 hover:bg-zinc-800' : 'border-slate-200 bg-slate-50 hover:bg-slate-100'} rounded-2xl flex flex-col items-center justify-center gap-2 transition-all group`}>
+                          <div className={`p-3 rounded-full ${isDarkMode ? 'bg-zinc-800' : 'bg-white shadow-sm'} group-hover:scale-110 transition-transform ${isDragging ? 'scale-110' : ''}`}>
+                            <ImageIcon size={24} className={isDragging ? 'text-[#1F8cac]' : isDarkMode ? 'text-zinc-600' : 'text-slate-400'} />
                           </div>
-                          <p className={`text-xs font-bold ${isDarkMode ? 'text-zinc-500' : 'text-slate-500'}`}>Click or Drop Project Photos</p>
+                          <p className={`text-xs font-bold ${isDragging ? 'text-[#1F8cac]' : isDarkMode ? 'text-zinc-500' : 'text-slate-500'}`}>
+                            {isDragging ? 'Drop files now...' : 'Click or Drop Project Files'}
+                          </p>
                           <p className={`text-[9px] ${isDarkMode ? 'text-zinc-700' : 'text-slate-400'} uppercase font-black tracking-widest`}>JPG, PNG, PDF up to 20MB</p>
                        </div>
                     </div>
 
                     <div className="space-y-2 max-h-44 overflow-y-auto custom-scroll pr-2">
                        {uploadedFiles.length === 0 ? (
-                          <div className={`h-full flex items-center justify-center ${isDarkMode ? 'text-zinc-800' : 'text-slate-200'} text-xs font-bold uppercase tracking-widest italic border ${isDarkMode ? 'border-zinc-800' : 'border-slate-100'} rounded-2xl border-dashed`}>
+                          <div className={`h-full flex items-center justify-center ${isDarkMode ? 'text-zinc-800' : 'text-slate-300'} text-xs font-bold uppercase tracking-widest italic border ${isDarkMode ? 'border-zinc-800' : 'border-slate-200'} rounded-2xl border-dashed`}>
                             No assets attached
                           </div>
                        ) : (
                           uploadedFiles.map(file => (
-                            <div key={file.id} className={`flex items-center justify-between p-3 rounded-xl border ${isDarkMode ? 'bg-zinc-900/80 border-zinc-800' : 'bg-white border-slate-100'} animate-in`}>
+                            <div key={file.id} className={`flex items-center justify-between p-3 rounded-xl border ${isDarkMode ? 'bg-zinc-900/80 border-zinc-800' : 'bg-white border-slate-200'} shadow-sm animate-in hover:shadow-md transition-all`}>
                               <div className="flex items-center gap-3 overflow-hidden">
-                                <div className="w-8 h-8 rounded bg-[#1F8cac]/10 flex items-center justify-center shrink-0">
-                                   <FileText size={14} className="text-[#1F8cac]" />
+                                <div className="w-10 h-10 rounded-lg bg-[#1F8cac]/10 flex items-center justify-center shrink-0 overflow-hidden border border-[#1F8cac]/20">
+                                   {file.url ? (
+                                     <img src={file.url} alt="preview" className="w-full h-full object-cover" />
+                                   ) : (
+                                     <FileText size={16} className="text-[#1F8cac]" />
+                                   )}
                                 </div>
                                 <div className="truncate">
                                   <p className={`text-[11px] font-bold ${textColor} truncate`}>{file.name}</p>
-                                  <p className={`text-[9px] ${mutedText} uppercase font-black`}>{file.size}</p>
+                                  <p className={`text-[9px] ${mutedText} uppercase font-black mt-0.5`}>{file.size}</p>
                                 </div>
                               </div>
-                              <button onClick={() => removeFile(file.id)} className={`p-1.5 rounded-lg hover:bg-red-500/10 text-zinc-500 hover:text-red-500 transition-colors`}>
+                              <button onClick={() => removeFile(file.id)} className={`p-1.5 rounded-lg hover:bg-red-500/10 text-zinc-400 hover:text-red-500 transition-colors`}>
                                 <X size={14} />
                               </button>
                             </div>
@@ -631,21 +736,39 @@ const App = () => {
                 <div className={`text-[10px] ${isDarkMode ? 'text-zinc-500' : 'text-slate-400'} uppercase font-black mt-2 tracking-widest`}>Est. Final Investment</div>
               </div>
 
-              <div className={`${isDarkMode ? 'bg-white' : 'bg-slate-50'} p-2 rounded-xl border ${isDarkMode ? 'border-zinc-800' : 'border-slate-200'} shadow-inner`}>
-                <div className="flex justify-between p-2">
-                  <span className="text-[9px] font-black text-slate-400 uppercase">Authorization Signature</span>
+              <div className={`${isDarkMode ? 'bg-white' : 'bg-slate-50'} p-2 rounded-xl border ${isDarkMode ? 'border-zinc-800' : 'border-slate-200'} transition-all duration-300 ${isDrawing ? 'ring-2 ring-[#1F8cac] shadow-[0_0_15px_rgba(31,140,172,0.3)]' : 'shadow-inner'}`}>
+                <div className="flex justify-between p-2 items-center">
+                  <div className="flex flex-col">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Field Authorization Signature</span>
+                    <span className="text-[8px] font-medium text-slate-400/70 mt-0.5">Used for internal approval and documentation only</span>
+                  </div>
+                  <button onClick={() => canvasRef.current.getContext('2d').clearRect(0,0,400,100)} className="text-[9px] text-red-500 font-bold hover:underline uppercase transition-all active:scale-95">Clear</button>
                 </div>
                 <canvas 
                   ref={canvasRef} 
                   width={400} height={100} 
                   onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={() => setIsDrawing(false)}
                   onPointerDown={startDrawing} onPointerMove={draw} onPointerUp={() => setIsDrawing(false)}
-                  className="w-full h-24 bg-white rounded-lg cursor-crosshair touch-none"
+                  className="w-full h-24 bg-white rounded-lg cursor-crosshair touch-none border border-slate-100"
                 />
               </div>
 
-              <button className="w-full bg-[#1F8cac] text-white hover:brightness-110 py-4 rounded-xl flex items-center justify-center gap-2 font-black text-xs uppercase transition-all shadow-xl shadow-[#1F8cac]/30 active:scale-95">
-                <Download size={16} /> Generate Proposal
+              <button 
+                onClick={handleGenerateProposal}
+                disabled={isGenerating}
+                className={`w-full bg-[#1F8cac] text-white hover:brightness-110 py-4 rounded-xl flex items-center justify-center gap-2 font-black text-xs uppercase transition-all shadow-xl shadow-[#1F8cac]/30 active:scale-95 ${isGenerating ? 'opacity-80 cursor-not-allowed' : ''}`}
+              >
+                {isGenerating ? (
+                  <div className="flex items-center gap-2">
+                    <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Generating...
+                  </div>
+                ) : (
+                  <><Download size={16} /> Generate Proposal</>
+                )}
               </button>
             </div>
           </div>
