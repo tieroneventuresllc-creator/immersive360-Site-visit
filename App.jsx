@@ -464,7 +464,7 @@ ${signatureData ? "[Included as base64 image data]" : "No signature captured"}
   </div>
 </div>
 
-</div>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1 relative group">
                       <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500 ml-1 mb-1 block">Travel Zone</label>
