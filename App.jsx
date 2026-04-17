@@ -33,6 +33,7 @@ import {
   CreditCard,
   Lock,
   Sun,
+  
   Moon
 } from 'lucide-react';
 
@@ -159,7 +160,140 @@ const App = () => {
       grand: Math.round(subtotal - flatDiscount + travelFee + publicSpaceSurcharge) 
     };
   }, [sector, commSizeIdx, commTier, commAddons, resSizeIdx, resPackage, resAddons, clientInfo]);
+const handleGenerateProposal = () => {
+  const signatureData = canvasRef.current?.toDataURL("image/png") || "";
 
+  const commercialTierLabels = {
+    tier3: "Essentials",
+    tier2: "Stand Out",
+    tier1: "All In"
+  };
+
+  const commercialAddonLabels = {
+    google: "Google Street View",
+    droneP: "Aerial Photography",
+    renderings: "Virtual Renderings",
+    floorPlan: "Floor Plan (2D)",
+    revit: "Revit/AutoCAD Export",
+    e57: "E57 High-Density File",
+    cadFileTbd: "CAD File Mapping",
+    bimFileTbd: "BIM Generation"
+  };
+
+  const residentialAddonLabels = {
+    mp: "Matterport 3D Tour",
+    droneBoth: "Aerial Package",
+    staging: "Virtual Staging",
+    floor2d: "2D Schematic Floor Plan",
+    floor3d: "3D Floor Plan"
+  };
+
+  const travelZoneLabels = {
+    "0": "NJ (North/Central)",
+    "50": "NJ (South Jersey/Shore) (+$50)",
+    "150": "NYC / Philly / AC (+$150)",
+    "450": "Out of State (+$450)"
+  };
+
+  const incentiveLabels = {
+    none: "No Incentive Selection",
+    commitment: "On Site Commitment (-$50)",
+    veteran: "Veteran (-$35)",
+    repeat: "Repeat Client (-$25)",
+    friends: "Friends and Family (-$20)"
+  };
+
+  const publicSpaceLabels = {
+    "0": "Standard (0%)",
+    "5": "Low Traffic (5%)",
+    "10": "Active (10%)",
+    "15": "High/Event (15%)"
+  };
+
+  const selectedPackage =
+    sector === "commercial"
+      ? commercialTierLabels[commTier]
+      : resPackage === "photo"
+        ? "HDR Photos"
+        : "Premium Bundle";
+
+  const selectedSize =
+    sector === "commercial"
+      ? commercialSizes[commSizeIdx]?.name
+      : residentialSizes[resSizeIdx]?.name;
+
+  const selectedAddons =
+    sector === "commercial"
+      ? commAddons.map(id => commercialAddonLabels[id] || id)
+      : resAddons.map(id => residentialAddonLabels[id] || id);
+
+  const tbdSelections = [];
+  if (sector === "commercial") {
+    if (tbdItems.renderings) tbdSelections.push("Virtual Renderings (TBD)");
+    if (tbdItems.cadFileTbd) tbdSelections.push("CAD File Mapping (TBD)");
+    if (tbdItems.bimFileTbd) tbdSelections.push("BIM Generation (TBD)");
+  }
+
+  const summary = `
+IMMERSIVE 360 - PROPOSAL INTAKE SUMMARY
+
+Timestamp: ${new Date().toLocaleString()}
+Sector: ${sector === "commercial" ? "Commercial" : "Real Estate"}
+
+CLIENT INFORMATION
+Company: ${clientInfo.company || "N/A"}
+Contact Person: ${clientInfo.contactName || "N/A"}
+Email: ${clientInfo.email || "N/A"}
+Phone: ${clientInfo.phone || "N/A"}
+
+PROJECT LOGISTICS
+Travel Zone: ${travelZoneLabels[clientInfo.travelZone] || clientInfo.travelZone}
+Incentive: ${incentiveLabels[clientInfo.incentive] || clientInfo.incentive}
+Site Visit Date: ${clientInfo.siteVisitDate || "N/A"}
+Preferred Date: ${clientInfo.preferredDate || "N/A"}
+Consult Time: ${clientInfo.consultationTime || "N/A"}
+Public Space: ${publicSpaceLabels[clientInfo.publicSpacePercent] || clientInfo.publicSpacePercent}
+
+PACKAGE DETAILS
+Selected Package: ${selectedPackage || "N/A"}
+Property Size: ${selectedSize || "N/A"}
+
+SELECTED ADD-ONS
+${selectedAddons.length ? selectedAddons.map(item => `- ${item}`).join("\n") : "- None"}
+
+TBD / FUTURE ITEMS
+${tbdSelections.length ? tbdSelections.map(item => `- ${item}`).join("\n") : "- None"}
+
+PRICING SUMMARY
+Gross Subtotal: $${totals.subtotal}
+Discount: $${totals.discount}
+Travel Fee: $${totals.travelFee}
+Public Space Fee: $${totals.publicSpaceFee}
+Estimated Final Investment: $${totals.grand}
+
+NOTES
+${clientInfo.notes || "None"}
+
+SIGNATURE
+${signatureData ? "[Included as base64 image data]" : "No signature captured"}
+`.trim();
+
+  const blob = new Blob([summary], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+
+  const companySlug = (clientInfo.company || "proposal")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+
+  link.download = `immersive360-${companySlug}-proposal-summary.txt`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
   const startDrawing = (e) => {
     setIsDrawing(true);
     const canvas = canvasRef.current;
@@ -535,9 +669,12 @@ const App = () => {
                 />
               </div>
 
-              <button className="w-full bg-[#1F8cac] text-white hover:brightness-110 py-4 rounded-xl flex items-center justify-center gap-2 font-black text-xs uppercase transition-all shadow-xl shadow-[#1F8cac]/30 active:scale-95">
-                <Download size={16} /> Generate Proposal
-              </button>
+              <button
+  onClick={handleGenerateProposal}
+  className="w-full bg-[#1F8cac] text-white hover:brightness-110 py-4 rounded-xl flex items-center justify-center gap-2 font-black text-xs uppercase transition-all shadow-xl shadow-[#1F8cac]/30 active:scale-95"
+>
+  <Download size={16} /> Generate Proposal
+</button>
             </div>
           </div>
         </div>
