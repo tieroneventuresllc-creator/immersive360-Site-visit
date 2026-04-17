@@ -413,39 +413,55 @@ ${signatureData ? "[Included as base64 image data]" : "No signature captured"}
               {isLogisticsOpen && (
                 <div className="p-6 pt-0 space-y-6 animate-in mt-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500 ml-1">Company Name</label>
-                      <input type="text" className={`w-full ${inputBg} border ${inputBorder} rounded-xl px-4 py-3 text-sm focus:border-[#1F8cac] outline-none transition-colors ${textColor}`} value={clientInfo.company} onChange={e => setClientInfo({...clientInfo, company: e.target.value})} />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500 ml-1">Contact Person</label>
-                      <div className="space-y-1">
-                      <input type="text" className={`w-full ${inputBg} border ${inputBorder} rounded-xl px-4 py-3 text-sm focus:border-[#1F8cac] outline-none transition-colors ${textColor}`} value={clientInfo.contactName} onChange={e => setClientInfo({...clientInfo, contactName: e.target.value})} />
-                    </div>
-                  </div>
-<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
   <div className="space-y-1">
-  <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500 ml-1">
-    Email
-  </label>
-  <input
-    type="email"
-    className={`w-full ${inputBg} border ${inputBorder} rounded-xl px-4 py-3 text-sm focus:border-[#1F8cac] outline-none transition-colors ${textColor}`}
-    value={clientInfo.email}
-    onChange={e => setClientInfo({ ...clientInfo, email: e.target.value })}
-  />
-</div>
+    <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500 ml-1">
+      Company Name
+    </label>
+    <input
+      type="text"
+      className={`w-full ${inputBg} border ${inputBorder} rounded-xl px-4 py-3 text-sm focus:border-[#1F8cac] outline-none transition-colors ${textColor}`}
+      value={clientInfo.company}
+      onChange={e => setClientInfo({ ...clientInfo, company: e.target.value })}
+    />
+  </div>
 
-<div className="space-y-1">
-  <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500 ml-1">
-    Phone
-  </label>
-  <input
-    type="tel"
-    className={`w-full ${inputBg} border ${inputBorder} rounded-xl px-4 py-3 text-sm focus:border-[#1F8cac] outline-none transition-colors ${textColor}`}
-    value={clientInfo.phone}
-    onChange={e => setClientInfo({ ...clientInfo, phone: e.target.value })}
-  />
+  <div className="space-y-1">
+    <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500 ml-1">
+      Contact Person
+    </label>
+    <input
+      type="text"
+      className={`w-full ${inputBg} border ${inputBorder} rounded-xl px-4 py-3 text-sm focus:border-[#1F8cac] outline-none transition-colors ${textColor}`}
+      value={clientInfo.contactName}
+      onChange={e => setClientInfo({ ...clientInfo, contactName: e.target.value })}
+    />
+  </div>
+
+  <div className="space-y-1">
+    <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500 ml-1">
+      Email
+    </label>
+    <input
+      type="email"
+      className={`w-full ${inputBg} border ${inputBorder} rounded-xl px-4 py-3 text-sm focus:border-[#1F8cac] outline-none transition-colors ${textColor}`}
+      value={clientInfo.email}
+      onChange={e => setClientInfo({ ...clientInfo, email: e.target.value })}
+      placeholder="email@example.com"
+    />
+  </div>
+
+  <div className="space-y-1">
+    <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500 ml-1">
+      Phone
+    </label>
+    <input
+      type="tel"
+      className={`w-full ${inputBg} border ${inputBorder} rounded-xl px-4 py-3 text-sm focus:border-[#1F8cac] outline-none transition-colors ${textColor}`}
+      value={clientInfo.phone}
+      onChange={e => setClientInfo({ ...clientInfo, phone: e.target.value })}
+      placeholder="(555) 555-5555"
+    />
+  </div>
 </div>
 
 </div>
